@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>B&C Websocket Tester</title>
+    <style>
+        body { font-family: sans-serif; padding: 20px; display: flex; gap: 20px; }
+        #controls { width: 40%; }
+        #logs { width: 60%; height: 90vh; overflow-y: scroll; background: #f0f0f0; border: 1px solid #ccc; padding: 10px; font-family: monospace; }
+        .log-entry { margin-bottom: 5px; border-bottom: 1px solid #ddd; }
+        .sent { color: blue; }
+        .received { color: green; }
+        .error { color: red; }
+        .section { margin-bottom: 20px; padding: 10px; border: 1px solid #eee; border-radius: 5px; }
+        button { cursor: pointer; padding: 5px 10px; margin: 5px 0; }
+        input { padding: 5px; }
+        h3 { margin-top: 0; }
+    </style>
+</head>
+<body>
+
+<div id="controls">
+    <h2>Game Controls</h2>
+    <div id="status">Status: Disconnected</div>
+    <button onclick="connect()">1. Connect to Server</button>
+
+    <div class="section">
+        <h3>Step 1: Lobby</h3>
+        <button onclick="createGame()">Create Game</button>
+        <hr>
+        <input type="text" id="joinId" placeholder="Enter Game ID">
+        <button onclick="joinGame()">Join Game</button>
+    </div>
+
+    <div class="section">
+        <h3>Step 2: Ready Up</h3>
+        <input type="text" id="username" placeholder="Username">
+        <button onclick="sendReady()">I am Ready</button>
+    </div>
+
+    <div class="section">
+        <h3>Step 3: Gameplay</h3>
+        <input type="text" id="guess" placeholder="Your Guess (e.g. 1234)">
+        <button onclick="makeGuess()">Submit Guess</button>
+    </div>
+
+    <div class="section">
+        <h3>Step 4: Result (Grading)</h3>
+        <p>Look at opponent's guess and grade it:</p>
+        Bulls: <input type="number" id="bulls" style="width: 40px" value="0">
+        Cows: <input type="number" id="cows" style="width: 40px" value="0">
+        <br>
+        <label><input type="checkbox" id="isWin"> Is this a Win (4 Cows)?</label>
+        <br>
+        <button onclick="submitResult()">Submit Result</button>
+    </div>
+</div>
+
+<div id="logs"></div>
+
+<script>
+    let ws;
+
+    function log(msg, type) {
+        const div = document.createElement('div');
+        div.className = `log-entry ${type}`;
+        div.innerText = `[${type.toUpperCase()}] ${msg}`;
+        document.getElementById('logs').prepend(div);
+    }
+
+    function connect() {
+        ws = new WebSocket("ws://localhost:8001/ws");
+        
+        ws.onopen = () => {
+            document.getElementById('status').innerText = "Status: Connected";
+            log("Connected to WS Server", "system");
+        };
+
+        ws.onmessage = (evt) => {
+            log(evt.data, "received");
+            // Auto-fill game ID if we created it (for convenience)
+            try {
+                const data = JSON.parse(evt.data);
+                if (data.type === "game_created") {
+                    document.getElementById('joinId').value = data.game_id;
+                    alert("Game Created! ID copied to Join box: " + data.game_id);
+                }
+                if (data.type === "opponent_guess") {
+                    alert("Opponent guessed: " + data.guess + ". Please grade them.");
+                }
+            } catch(e) {}
+        };
+
+        ws.onclose = () => {
+            document.getElementById('status').innerText = "Status: Disconnected";
+            log("Disconnected", "error");
+        };
+    }
+
+    function send(type, payload) {
+        if (!ws) return alert("Connect first!");
+        const msg = JSON.stringify({ type: type, payload: payload });
+        ws.send(msg);
+        log(msg, "sent");
+    }
+
+    function createGame() {
+        send("create_game", {}); // No payload needed based on your code, but empty object is safe
+    }
+
+    function joinGame() {
+        const id = document.getElementById('joinId').value;
+        send("join_game", { game_id: id });
+    }
+
+    function sendReady() {
+        const user = document.getElementById('username').value;
+        send("player_ready", { username: user });
+    }
+
+    function makeGuess() {
+        const guess = document.getElementById('guess').value;
+        send("make_guess", { guess: guess });
+    }
+
+    function submitResult() {
+        const bulls = parseInt(document.getElementById('bulls').value);
+        const cows = parseInt(document.getElementById('cows').value);
+        const isWin = document.getElementById('isWin').checked;
+        
+        send("submit_result", { 
+            bulls: bulls, 
+            cows: cows, 
+            is_win: isWin 
+        });
+    }
+</script>
+</body>
+</html>
