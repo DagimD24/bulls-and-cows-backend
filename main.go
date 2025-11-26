@@ -2,6 +2,7 @@ package main
 
 import (
 	"log"
+	"net"
 	"net/http"
 	"os"
 
@@ -24,8 +25,17 @@ func main() {
 	}
 
 	addr := ":" + port
-	log.Printf("Server starting on port %s...", port)
-	if err := http.ListenAndServe(addr, nil); err != nil {
-		log.Fatal("ListenAndServe: ", err)
+	log.Printf("Attempting to start server on %s...", addr)
+
+	// Try to bind to the address first so we can distinguish startup errors
+	ln, err := net.Listen("tcp", addr)
+	if err != nil {
+		log.Fatalf("Failed to bind to %s: %v", addr, err)
+	}
+
+	log.Printf("Server successfully started and listening on %s", addr)
+
+	if err := http.Serve(ln, nil); err != nil && err != http.ErrServerClosed {
+		log.Fatalf("Server stopped with error: %v", err)
 	}
 }
