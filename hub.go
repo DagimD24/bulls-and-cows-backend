@@ -86,6 +86,7 @@ func (h *Hub) processMessage(player *Player, msg *Message) {
 		}
 		json.Unmarshal(msg.Payload, &payload)
 		player.Username = payload.Username
+		player.IsReady = true
 
 		// Notify opponent
 		var opponent *Player
@@ -97,7 +98,7 @@ func (h *Hub) processMessage(player *Player, msg *Message) {
 		sendJSON(opponent, map[string]string{"type": "opponent_ready", "username": player.Username})
 
 		// Check if both are ready
-		if game.Player1.Username != "" && game.Player2.Username != "" {
+		if game.Player1.IsReady && game.Player2.IsReady {
 			game.GameState = "waiting_for_guesses"
 			// Broadcast start
 			msg := map[string]string{

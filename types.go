@@ -16,6 +16,7 @@ type Player struct {
 	Game     *Game
 	Send     chan []byte
 	Username string
+	IsReady  bool
 }
 
 type Game struct {
