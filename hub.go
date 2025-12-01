@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"log"
 	"sync"
 )
 
@@ -18,6 +19,9 @@ func newHub() *Hub {
 
 // processMessage is the Hub's main entry point for all actions
 func (h *Hub) processMessage(player *Player, msg *Message) {
+	// Log the incoming message
+	log.Printf("WS Message: Type=%s from Player=%p Payload=%s", msg.Type, player, string(msg.Payload))
+
 	// 1. LOCK THE HUB
 	// We lock the entire hub because we are accessing and modifying global game state.
 	h.mu.Lock()

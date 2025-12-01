@@ -30,15 +30,21 @@ func main() {
 		log.Fatalf("Failed to bind to %s: %v", addr, err)
 	}
 
-	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+	http.HandleFunc("/", withLogging(func(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte("Go backend is running!"))
-	})
+	}))
 
-	http.HandleFunc("/ws", wsHandler)
+	http.HandleFunc("/ws", withLogging(wsHandler))
 
 	log.Printf("Server successfully started and listening on %s", addr)
 	if err := http.Serve(ln, nil); err != nil && err != http.ErrServerClosed {
 		log.Fatalf("Server stopped with error: %v", err)
 	}
+}
 
+func withLogging(next http.HandlerFunc) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		log.Printf("HTTP Request: %s %s from %s", r.Method, r.URL.Path, r.RemoteAddr)
+		next(w, r)
+	}
 }
